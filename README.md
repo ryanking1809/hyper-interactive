@@ -1,7 +1,7 @@
 # hyper-interactive
 Events triggered on complex mouse and keyboard interactions.
 
-    npm install simple-spring
+    npm install hyper-interactive
 
 ## How to use
 
@@ -19,7 +19,7 @@ const hyper = new HyperInteractive(document);
 
 #### Add interaction events
 
-You can add events using `.addInteractions()` or a single event using `.addInteraction`.
+You can add events using `.addInteractions()` or a single event using `.addInteraction()`.
 
 ```js
 hyper.addInteraction({
