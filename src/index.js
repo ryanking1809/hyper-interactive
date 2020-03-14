@@ -35,7 +35,7 @@ export default class HyperInteractive {
     this.keyboardMap = { ...this.keyboardMap, ...newCodes }
   }
   onKeydown(e) {
-    const eventCode = e.code?.toLowerCase() || String(e.keyCode)
+    const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
     if (!e.repeat || !this.downKeys.has(eventCode)) {
       this.keyDownTimestamp = e.timeStamp
       this.numKeyDownEvents++
@@ -45,7 +45,7 @@ export default class HyperInteractive {
     }
   }
   onKeyup(e) {
-    const eventCode = e.code?.toLowerCase() || String(e.keyCode)
+    const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
     this.keyUpTimestamp = e.timeStamp
     this.numKeyUpEvents++
     this.keyUpEvents.forEach(keyEvent => keyEvent(e))
@@ -93,7 +93,7 @@ export default class HyperInteractive {
           level: level + 1,
           node: kn,
           reactionFunc: e => {
-            const eventCode = e.code?.toLowerCase() || String(e.keyCode)
+            const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
             if (
               sequences.step === i &&
               (i === 0 ||
@@ -193,7 +193,7 @@ export default class HyperInteractive {
       } else {
         const fireEvent = e => {
           const interactionCode = e.code ? node.key.toLowerCase() : this.keyCodeMap[node.key.toLowerCase()]
-          const eventCode = e.code?.toLowerCase() || String(e.keyCode)
+          const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
           const matchingKey = node.key.toLowerCase() === 'any' ? true : eventCode === interactionCode
           if (invert ? !matchingKey : matchingKey) {
             reactionFunc(e)
