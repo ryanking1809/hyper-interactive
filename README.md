@@ -40,7 +40,7 @@ hyper.addInteractions([
 	},
 	{
 		formula: "[|]",
-		reaction: () => alert("[ or ] key was both pressed!")
+		reaction: () => alert("[ or ] key was pressed!")
 	},
 	{
 		formula: "k o n a m i",
@@ -67,11 +67,11 @@ space+F10
 
 #### Or operators
 
-Using the `|` you can create an or operator. The formula `a|b` will trigger an event if either a or b is pressed.
+Using the `|` you can create an or operator. The formula `a|b` will trigger an event if either `a` or `b` is pressed.
 
 #### Konami code
 
-You can create an event based on a sequence of key presses using a space ` ` inbetween codes. You can even combine it with the syntax above. Try the following.
+You can create an event based on a sequence of key presses using a space inbetween codes. You can even combine it with the syntax above. Try the following.
 
 ```
 h e l l o

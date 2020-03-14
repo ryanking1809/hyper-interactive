@@ -1,6 +1,6 @@
 {
   "name": "hyper-interactive",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Events triggered on complex mouse and keyboard interactions.",
   "main": "src/index.js",
   "scripts": {
@@ -22,7 +22,7 @@
   "files": [
     "LICENSE",
     "README.md",
-    "src/index.js"
+    "src"
   ],
   "author": "Ryan King",
   "license": "MIT",
