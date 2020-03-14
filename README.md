@@ -91,9 +91,52 @@ An `!` can be used to exclude keys. `!(a|b)` will fire any time a key is pressed
 
 ## Available Keys
 
+You can use any `KeyEvent.code` value as a key, along with the following aliases, all case insensitive. A `KeyEvent.keyCode` fallback has been provided for older browsers.
+
 | KeyCode | Description |
 | ----------- | ----------- |
-| * | Any Key |
-| esc | Escape Key |
+| *, any | Any |
+| shift | ShiftLeft or ShiftRight |
+| ctrl, control | ControlLeft or ControlRight |
+| alt, opt, option | AltLeft or AltRight |
+| meta, cmd, command | MetaLeft or MetaRight |
+| mod, modifier | Meta for Apple devices, Control for others |
+| esc, escape | Escape |
+| _, space | Space |
+| del | Backspace or Delete |
+| up | ArrowUp |
+| down | ArrowDown |
+| left | ArrowLeft |
+| right | ArrowRight |
+| - | Minus |
+| = | Equal |
+| [ | BracketLeft |
+| ] | BracketRight |
+| ; | Semicolon |
+| ' | Quote |
+| \ | Backslash |
+| , | Comma |
+| . | Period |
+| / | Slash |
+| 0-9 | Digit0-Digit9 |
+| a-z | KeyA-KeyZ |
 
-...under construction
+While we patiently wait for `Keyboard.getLayoutMap()` you can pass different keyboard maps via the third argument of the `HyperInteractive` constructor.
+
+```js
+new HyperInteractive(target, interactions, keyboardMap)
+```
+
+Additionally you can use `.addKeyCodes()` to create additional key codes. These can use any formula value. For example.
+
+```js
+hyper.addKeyCodes({
+    "?": "shift+/",
+    "save": "mod+s"
+})
+```
+
+## To do
+
+- add mouse / pointer events
+- provide additional keyboard layouts

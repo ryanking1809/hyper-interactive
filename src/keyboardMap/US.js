@@ -33,7 +33,7 @@ export default {
   "\\": "Backslash",
   ",": "Comma",
   ".": "Period",
-  "/": "slash",
+  "/": "Slash",
   // numbers
   "1": "Digit1",
   "2": "Digit2",
