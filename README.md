@@ -97,14 +97,14 @@ You can use any `KeyEvent.code` value as a key, along with the following aliases
 
 | KeyCode | Description |
 | ----------- | ----------- |
-| *, any | Any |
+| * , any | Any |
 | shift | ShiftLeft or ShiftRight |
-| ctrl, control | ControlLeft or ControlRight |
-| alt, opt, option | AltLeft or AltRight |
-| meta, cmd, command | MetaLeft or MetaRight |
-| mod, modifier | Meta for Apple devices, Control for others |
-| esc, escape | Escape |
-| _, space | Space |
+| ctrl , control | ControlLeft or ControlRight |
+| alt , opt , option | AltLeft or AltRight |
+| meta , cmd , command | MetaLeft or MetaRight |
+| mod , modifier | Meta for Apple devices, Control for others |
+| esc , escape | Escape |
+| _ , space | Space |
 | del | Backspace or Delete |
 | up | ArrowUp |
 | down | ArrowDown |
