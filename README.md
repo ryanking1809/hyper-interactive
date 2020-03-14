@@ -1,6 +1,8 @@
 # hyper-interactive
 Events triggered on complex mouse and keyboard interactions.
 
+Inspired by `mousetrap`, `hyper-interactive` is more flexible - It allows any key to act as a modifier, has parentheses and not operations, and allows to combine your event formulas in an almost infinite number of ways.
+
     npm install hyper-interactive
 
 ## How to use
