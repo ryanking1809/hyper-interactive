@@ -9,7 +9,7 @@ export const parseFormula = (string) => {
       parser.feed(string)
       return parser.results[0]
     } catch (err) {
-      console.error("Error at character " + err?.offset, err); // "Error at character 9"
+      console.error("Error at character " + err && err.offset, err); // "Error at character 9"
       return 'error'
     }
 }
