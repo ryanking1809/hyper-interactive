@@ -1,218 +1,310 @@
+import tuple from 'immutable-tuple'
 import { parseFormula } from './parser/parseFormula'
 import US from './keyboardMap/US'
 import keyCodeMap from './keyboardMap/keyCodeMap'
 
+const anyTarget = {}
+
 export default class HyperInteractive {
-  constructor(target, interactions = [], keyboardMap = US, codeMap = keyCodeMap) {
+  constructor({
+    target = document,
+    interactions = [],
+    keyboardMap = US,
+    codeMap = keyCodeMap,
+    getTarget = e => e.target
+  } = {}) {
     this.target = target
+    this.getTarget = getTarget.bind(this)
     this.keyboardMap = keyboardMap
     this.keyCodeMap = codeMap
     this.downKeys = new Set()
-    this.keyDownEvents = []
-    this.keyUpEvents = []
-    this.sequences = {}
-    this.combos = {}
-    this.keyDownTimestamp = 0
-    this.keyUpTimestamp = 0
-    this.prevKeyDownTimestamp = 0
-    this.prevKeyUpTimestamp = 0
-    this.numKeyDownEvents = 0
-    this.numKeyUpEvents = 0
+    this.eventHistory = []
+    this.eventReactions = new WeakMap()
+
+    this.addKeyCodes = this.addKeyCodes.bind(this)
+    this.addInteractions = this.addInteractions.bind(this)
+
+    this.isKeyDown = this.isKeyDown.bind(this)
+    this.check = this.check.bind(this)
+
+    this.addInteraction = this.addInteraction.bind(this)
+    this.removeInteraction = this.addInteraction.bind(this)
+    this.getNodeKeys = this.getNodeKeys.bind(this)
+
+    this.checkEvent = this.checkEvent.bind(this)
+    this.checkEventComboKeys = this.checkEventComboKeys.bind(this)
+    this.getEventChecker = this.getEventChecker.bind(this)
+    this.checkKonamiEvent = this.checkKonamiEvent.bind(this)
+    this.getHistoryIndexBefore = this.getHistoryIndexBefore.bind(this)
+    this.checkComboEvent = this.checkComboEvent.bind(this)
+    this.checkOrEvent = this.checkOrEvent.bind(this)
+    this.checkNotEvent = this.checkNotEvent.bind(this)
+    this.checkKeyEvent = this.checkKeyEvent.bind(this)
+
     this.onKeydown = this.onKeydown.bind(this)
     this.onKeyup = this.onKeyup.bind(this)
-    this.isKeyDown = this.isKeyDown.bind(this)
-    this.addInteractions = this.addInteractions.bind(this)
-    this.addInteraction = this.addInteraction.bind(this)
-    this.processFormulaNode = this.processFormulaNode.bind(this)
-    this.addKeyDownEvent = this.addKeyDownEvent.bind(this)
-    this.addKeyUpEvent = this.addKeyUpEvent.bind(this)
+
+    this.addToHistory = this.addToHistory.bind(this)
+    this.addEventReaction = this.addEventReaction.bind(this)
+    this.removeEventReaction = this.addEventReaction.bind(this)
+    this.fireEventReactions = this.fireEventReactions.bind(this)
+    this.fireReactions = this.fireReactions.bind(this)
+
     this.dispose = this.dispose.bind(this)
-    this.target.addEventListener('keydown', this.onKeydown)
-    this.target.addEventListener('keyup', this.onKeyup)
+
+    target.addEventListener('keydown', this.onKeydown)
+    target.addEventListener('keyup', this.onKeyup)
+
     this.addInteractions(interactions)
   }
+  // add data / events
   addKeyCodes(newCodes) {
     this.keyboardMap = { ...this.keyboardMap, ...newCodes }
-  }
-  onKeydown(e) {
-    const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
-    if (!e.repeat || !this.downKeys.has(eventCode)) {
-      this.keyDownTimestamp = e.timeStamp
-      this.numKeyDownEvents++
-      this.downKeys.add(eventCode)
-      this.keyDownEvents.forEach(keyEvent => keyEvent(e))
-      this.prevKeyDownTimestamp = e.timeStamp
-    }
-  }
-  onKeyup(e) {
-    const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
-    this.keyUpTimestamp = e.timeStamp
-    this.numKeyUpEvents++
-    this.keyUpEvents.forEach(keyEvent => keyEvent(e))
-    this.downKeys.delete(eventCode)
-    this.prevKeyUpTimestamp = e.timeStamp
-  }
-  isKeyDown(key) {
-    return this.downKeys.has(key)
   }
   addInteractions(interactions) {
     interactions.forEach(i => this.addInteraction(i))
   }
-  addInteraction({ formula, reaction, eventType }) {
-    const formulaNode = parseFormula(formula)
-    this.processFormulaNode({
-      id: formula,
-      node: formulaNode,
-      reactionFunc: reaction,
-      eventType,
+  removeInteractions(interactions) {
+    interactions.forEach(i => this.removeInteraction(i))
+  }
+
+  //check data
+  isKeyDown(key) {
+    return this.downKeys.has(key)
+  }
+  check(formula, eventType) {
+    const node = parseFormula(formula)
+    const eventChecker = this.getEventChecker(node, eventType)
+    return eventChecker()
+  }
+
+  // processing event formulas
+  addInteraction({ formula = '', reaction = e => e, eventType = 'keyup', target = anyTarget }) {
+    const node = parseFormula(formula)
+    const eventChecker = this.getEventChecker(node, eventType)
+    this.getNodeKeys(node).forEach(k => {
+      this.addEventReaction({
+        key: k,
+        type: eventType,
+        reaction: e => {
+          eventChecker() && reaction(e)
+        },
+        formula: formula,
+        target,
+      })
     })
   }
-  processFormulaNode(props) {
-    let {
-      id,
-      level = 0,
-      node,
-      reactionFunc = e => {
-        return
-      },
-      eventType = 'keyup',
-      invert = false,
-    } = props
+  removeInteraction({ formula = '', eventType = 'keyup', target = anyTarget }) {
+    const node = parseFormula(formula)
+    this.getNodeKeys(node).forEach(k => {
+      this.removeEventReaction({
+        key: k,
+        type: eventType,
+        formula: formula,
+        target,
+      })
+    })
+  }
+  getNodeKeys(node) {
     if (node.konami) {
-      const sequenceLength = node.konami.length
-      this.sequences[id + level] = {
-        step: 0,
-        prevTimestamp: 0,
-        prevKeyUpNum: 0,
-        prevDownKeys: new Set(),
-      }
-      const sequences = this.sequences[id + level]
-      node.konami.forEach((kn, i) => {
-        this.processFormulaNode({
-          ...props,
-          level: level + 1,
-          node: kn,
-          reactionFunc: e => {
-            const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
-            if (
-              sequences.step === i &&
-              (i === 0 ||
-                // with this technique "or" values need to be the same length
-                (this.numKeyUpEvents - sequences.prevKeyUpNum <= node.konami[i - 1].maxKeys &&
-                  e.timeStamp !== sequences.prevTimestamp))
-            ) {
-              if (i === 0) sequences.step = 0
-              sequences.step++
-              sequences.prevTimestamp = e.timeStamp
-              sequences.prevKeyUpNum = this.numKeyUpEvents
-              sequences.prevDownKeys = new Set(this.downKeys)
-              if (sequences.step === sequenceLength) {
-                reactionFunc(e)
-                sequences.step = 0
-              }
-            } else if (
-              sequences.step === i &&
-              e.timeStamp !== sequences.prevTimestamp &&
-              !sequences.prevDownKeys.has(eventCode)
-            ) {
-              sequences.step = 0
-            } else if (sequences.prevDownKeys.has(eventCode)) {
-              sequences.prevTimestamp = e.timeStamp
-              sequences.prevDownKeys.delete(eventCode)
-            }
-          },
-          eventType: 'keyup',
-        })
-      })
+      let keys = new Set([...this.getNodeKeys(node.konami[node.konami.length - 1])])
+      if (keys.has('any')) return new Set(['any'])
+      return keys
     } else if (node.combo) {
-      this.combos[id + level] = []
-      let combos = this.combos[id + level]
-      let comboStrings = new Set()
-      node.combo.forEach((cn, i) => {
-        // make sure you ant press both keys at once
-        if (comboStrings.has(cn.string)) return
-        comboStrings.add(cn.string)
-
-        combos[i] = false
-        if (!cn.konami) {
-          this.processFormulaNode({
-            ...props,
-            level: level + 1,
-            node: cn,
-            reactionFunc: e => {
-              combos[i] = true
-              if (eventType === 'keydown' && combos.every(e => e)) {
-                reactionFunc(e)
-              }
-            },
-            eventType: 'keydown',
-          })
-        }
-        this.processFormulaNode({
-          ...props,
-          level: level + 1,
-          node: cn,
-          reactionFunc: e => {
-            if (cn.konami) {
-              combos[i] = true
-            }
-            if (eventType === 'keyup' && combos.every(e => e)) {
-              reactionFunc(e)
-            }
-            combos[i] = false
-          },
-          eventType: 'keyup',
-        })
+      let keys = new Set()
+      node.combo.forEach(n => {
+        keys = new Set([...keys, ...this.getNodeKeys(n)])
       })
+      if (keys.has('any')) return new Set(['any'])
+      return keys
     } else if (node.or) {
-      let orStrings = new Set()
-      node.or.forEach((on, i) => {
-        // make sure no duplicates or double events fire
-        if (orStrings.has(on.string)) return
-        orStrings.add(on.string)
-
-        this.processFormulaNode({
-          ...props,
-          level: level + 1,
-          node: on,
-        })
+      let keys = new Set()
+      node.or.forEach(n => {
+        keys = new Set([...keys, ...this.getNodeKeys(n)])
       })
+      if (keys.has('any')) return new Set(['any'])
+      return keys
     } else if (node.not) {
-      this.processFormulaNode({
-        ...props,
-        level: level + 1,
-        node: node.not,
-        invert: !invert,
-      })
+      return new Set(['any'])
     } else if (node.key) {
-      if (this.keyboardMap[node.key.toLowerCase()]) {
-        this.processFormulaNode({
-          ...props,
-          node: parseFormula(this.keyboardMap[node.key.toLowerCase()]),
-        })
-      } else {
-        const fireEvent = e => {
-          const interactionCode = e.code ? node.key.toLowerCase() : this.keyCodeMap[node.key.toLowerCase()]
-          const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
-          const matchingKey = node.key.toLowerCase() === 'any' ? true : eventCode === interactionCode
-          if (invert ? !matchingKey : matchingKey) {
-            reactionFunc(e)
-          }
-        }
-        if (eventType === 'keydown') {
-          this.addKeyDownEvent(fireEvent)
-        } else if (eventType === 'keyup') {
-          this.addKeyUpEvent(fireEvent)
-        }
-      }
+      const mappedKeys = this.keyboardMap[node.key.toLowerCase()]
+      if (mappedKeys) return this.getNodeKeys(parseFormula(mappedKeys))
+      return new Set([node.key.toLowerCase()])
     }
   }
-  addKeyDownEvent(event) {
-    this.keyDownEvents.push(event)
+
+  // event checkers
+  checkEvent({ key, eventType, target }, e = this.eventHistory[0]) {
+    return (
+      (key ? e && e.keys && e.keys.some(ks => ks.includes(key)) : true) &&
+      (eventType ? e.type === eventType.toLowerCase() : true) &&
+      (target ? target === this.getTarget(e) : true)
+    )
   }
-  addKeyUpEvent(event) {
-    this.keyUpEvents.push(event)
+  checkEventComboKeys({ key, eventType, target }, e = this.eventHistory[0]) {
+    return (
+      (key ? e && e.keys && e.comboKeys.some(ks => ks.includes(key)) : true) &&
+      (eventType ? e.type === eventType.toLowerCase() : true) &&
+      (target ? target === this.getTarget(e) : true)
+    )
   }
+  getEventChecker(node, eventType = 'keyup', baseChecker = this.checkEvent) {
+    if (node.konami) {
+      return this.checkKonamiEvent(node, eventType, baseChecker)
+    } else if (node.combo) {
+      return this.checkComboEvent(node, eventType, baseChecker)
+    } else if (node.or) {
+      return this.checkOrEvent(node, eventType, baseChecker)
+    } else if (node.not) {
+      return this.checkNotEvent(node, eventType, baseChecker)
+    } else if (node.key) {
+      return this.checkKeyEvent(node, eventType, baseChecker)
+    }
+  }
+  checkKonamiEvent(node, eventType = 'keyup', baseChecker) {
+    const reverseKonami = [...node.konami].reverse()
+    return (e = this.eventHistory[0]) => {
+      let historyIndex = 0
+      let sequence = 0
+      reverseKonami.forEach((kn, i) => {
+        if (sequence !== i) return
+        historyIndex = this.getHistoryIndexBefore(
+          historyIndex,
+          'keyup',
+          index =>
+            !index ||
+            (kn.not
+              ? this.getEventChecker(kn, 'keyup', this.checkEventComboKeys)(this.eventHistory[index])
+              : !this.getEventChecker(kn, 'keyup', this.checkEventComboKeys)(this.eventHistory[index]))
+        )
+        if (
+          this.eventHistory[historyIndex] &&
+          this.getEventChecker(kn, !i ? eventType : 'keyup', baseChecker)(this.eventHistory[historyIndex])
+        ) {
+          sequence++
+        }
+        historyIndex++
+      })
+      return sequence === reverseKonami.length
+    }
+  }
+  getHistoryIndexBefore(index, eventType, extraConditions) {
+    while (
+      this.eventHistory[index] &&
+      // keep increasing index until conditions are met
+      !((eventType ? this.eventHistory[index].type === eventType : true) && extraConditions(index))
+    ) {
+      index++
+    }
+    return index
+  }
+  checkComboEvent(node, eventType = 'keyup', baseChecker) {
+    let kn = node.combo.find(n => n.konami)
+    if (kn) {
+      let comboNodes = node.combo.filter(n => n !== kn)
+      kn.konami = kn.konami.map(n => ({ combo: [n, ...comboNodes] }))
+      kn.string = node.string
+      return (e = this.eventHistory[0]) => this.getEventChecker(kn, eventType, baseChecker)(e)
+    }
+    return (e = this.eventHistory[0]) => node.combo.every(n => this.getEventChecker(n, eventType, baseChecker)(e))
+  }
+  checkOrEvent(node, eventType = 'keyup', baseChecker) {
+    return (e = this.eventHistory[0]) => node.or.some(n => this.getEventChecker(n, eventType, baseChecker)(e))
+  }
+  checkNotEvent(node, eventType = 'keyup', baseChecker) {
+    return (e = this.eventHistory[0]) => {
+      return !this.getEventChecker(node.not, eventType, baseChecker)(e)
+    }
+  }
+  checkKeyEvent(node, eventType = 'keyup', baseChecker) {
+    const mappedKeys = this.keyboardMap[node.key.toLowerCase()]
+    if (mappedKeys) return this.getEventChecker(parseFormula(mappedKeys), eventType, baseChecker)
+    return (e = this.eventHistory[0]) => {
+      const interactionCode = isNaN(e.keys[0][0]) ? node.key.toLowerCase() : this.keyCodeMap[node.key.toLowerCase()]
+      return baseChecker(
+        {
+          key: interactionCode,
+          eventType: eventType,
+        },
+        e
+      )
+    }
+  }
+
+  //on up and down
+  onKeydown(e) {
+    const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
+    if (!e.repeat || !this.downKeys.has(eventCode)) {
+      this.addToHistory(e)
+      this.downKeys.add(eventCode)
+      this.fireEventReactions(e)
+    }
+  }
+  onKeyup(e) {
+    const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
+    this.downKeys.delete(eventCode)
+    this.addToHistory(e)
+    this.fireEventReactions(e)
+  }
+
+  //history and reactinons
+  addToHistory(e) {
+    const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
+    let keys = [[eventCode]]
+    ;[...this.downKeys].forEach(dk => {
+      const keysCopy = [...keys]
+      keysCopy.forEach(k => {
+        keys.push([...k, dk])
+      })
+    })
+    const longestKeyArray = keys[keys.length - 1]
+    const prevEvent = this.eventHistory[0]
+    const prevLongestKeyArray = prevEvent ? prevEvent.keys[prevEvent.keys.length - 1] : 0;
+    this.eventHistory.unshift({
+      type: e.type.toLowerCase(),
+      keys: keys,
+      timestamp: e.timeStamp,
+      target: this.getTarget(e),
+      comboKeys:
+        prevLongestKeyArray &&
+        longestKeyArray.length !== prevLongestKeyArray.length &&
+        longestKeyArray.every(k => prevLongestKeyArray.includes(k))
+          ? [prevLongestKeyArray, ...this.eventHistory[0].comboKeys]
+          : [],
+    })
+    if (this.eventHistory.length > 20) {
+      this.eventHistory.pop()
+    }
+  }
+  addEventReaction({ key = 'any', type = 'any', reaction, formula, target = anyTarget }) {
+    const t = tuple(key, type, target)
+    if (this.eventReactions.get(t) === undefined) this.eventReactions.set(t, {})
+    this.eventReactions.get(t)[formula] = reaction
+  }
+  removeEventReaction({ key = 'any', type = 'any', formula, target = anyTarget }) {
+    const t = tuple(key, type, target)
+    if (this.eventReactions.get(t) === undefined) delete this.eventReactions.get(t)[formula]
+  }
+  fireReactions({ key = 'any', type = 'any', target = anyTarget }, event) {
+    const t = tuple(key, type, target)
+    const reactions = this.eventReactions.get(t)
+    reactions &&
+      Object.values(reactions).forEach(reaction => {
+        reaction(event)
+      })
+  }
+  fireEventReactions(e) {
+    const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
+    this.fireReactions({ key: eventCode, type: e.type, target: this.getTarget(e) }, e)
+    this.fireReactions({ key: eventCode, type: e.type }, e)
+    this.fireReactions({ type: e.type, target: this.getTarget(e) }, e)
+    this.fireReactions({ key: eventCode, target: this.getTarget(e) }, e)
+    this.fireReactions({ key: eventCode }, e)
+    this.fireReactions({ type: e.type }, e)
+    this.fireReactions({ target: this.getTarget(e) }, e)
+  }
+
+  // dispose
   dispose() {
     this.target.removeEventListener('keydown', this.onKeydown)
     this.target.removeEventListener('keyup', this.onKeyup)

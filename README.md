@@ -16,7 +16,7 @@ import HyperInteractive from "hyper-interactive";
 #### Wrap target element to watch for events
 
 ```js
-const hyper = new HyperInteractive(document);
+const hyper = new HyperInteractive();
 ```
 
 #### Add interaction events
@@ -28,6 +28,12 @@ hyper.addInteraction({
   formula: "a",
   reaction: () => alert("a key was pressed!")
 });
+```
+
+Additionally you can check the latest event with `.check()`
+
+```js
+hyper.check("space", "keydown);
 ```
 
 #### Add more complicated interactions
@@ -126,7 +132,7 @@ You can use any `KeyEvent.code` value as a key, along with the following aliases
 While we patiently wait for `Keyboard.getLayoutMap()` you can pass different keyboard maps via the third argument of the `HyperInteractive` constructor.
 
 ```js
-new HyperInteractive(target, interactions, keyboardMap)
+new HyperInteractive({target, interactions, keyboardMap, getTarget})
 ```
 
 Additionally you can use `.addKeyCodes()` to create additional key codes. These can use any formula value. For example.
@@ -136,6 +142,15 @@ hyper.addKeyCodes({
     "?": "shift+/",
     "save": "mod+s"
 })
+```
+
+## Custom targets
+
+You can use `getTarget` in the constructor to define custom target for events. This can allow you to select your own elements when using Canvas / WebGL.
+
+```js
+const getTarget = event => (event.target === canvas ? getCanvasTarget() : event.target);
+new HyperInteractive({target, interactions, keyboardMap, getTarget})
 ```
 
 ## To do
