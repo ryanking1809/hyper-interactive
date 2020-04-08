@@ -135,15 +135,19 @@ export default class HyperInteractive {
 
   // event checkers
   checkEvent({ key, eventType, target }, e = this.eventHistory[0]) {
+    if (!e) return false
+    key = e && isNaN(e.keys[0][0]) ? key.toLowerCase() : this.keyCodeMap[key.toLowerCase()]
     return (
-      (key ? e && e.keys && e.keys.some(ks => ks.includes(key)) : true) &&
+      (key ? e && e.keys && e.keys.some((ks) => ks.includes(key)) : true) &&
       (eventType ? e.type === eventType.toLowerCase() : true) &&
       (target ? target === this.getTarget(e) : true)
     )
   }
   checkEventComboKeys({ key, eventType, target }, e = this.eventHistory[0]) {
+    if (!e) return false
+    key = e && isNaN(e.keys[0][0]) ? key.toLowerCase() : this.keyCodeMap[key.toLowerCase()]
     return (
-      (key ? e && e.keys && e.comboKeys.some(ks => ks.includes(key)) : true) &&
+      (key ? e && e.keys && e.comboKeys.some((ks) => ks.includes(key)) : true) &&
       (eventType ? e.type === eventType.toLowerCase() : true) &&
       (target ? target === this.getTarget(e) : true)
     )
@@ -220,10 +224,9 @@ export default class HyperInteractive {
     const mappedKeys = this.keyboardMap[node.key.toLowerCase()]
     if (mappedKeys) return this.getEventChecker(parseFormula(mappedKeys), eventType, baseChecker)
     return (e = this.eventHistory[0]) => {
-      const interactionCode = isNaN(e.keys[0][0]) ? node.key.toLowerCase() : this.keyCodeMap[node.key.toLowerCase()]
       return baseChecker(
         {
-          key: interactionCode,
+          key: node.key.toLowerCase(),
           eventType: eventType,
         },
         e
