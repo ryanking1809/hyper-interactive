@@ -1,14 +1,14 @@
 {
   "name": "hyper-interactive",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Events triggered on complex mouse and keyboard interactions.",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "nearley": "^2.19.1",
-    "immutable-tuple": "^0.4.10"
+    "immutable-tuple": "^0.4.10",
+    "nearley": "^2.19.1"
   },
   "repository": {
     "type": "git",
