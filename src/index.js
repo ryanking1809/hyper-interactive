@@ -11,7 +11,8 @@ export default class HyperInteractive {
     interactions = [],
     keyboardMap = US,
     codeMap = keyCodeMap,
-    getTarget = e => e.target
+    getTarget = e => e.target,
+    preventDefault = true,
   } = {}) {
     this.target = target
     this.getTarget = getTarget.bind(this)
@@ -20,6 +21,7 @@ export default class HyperInteractive {
     this.downKeys = new Set()
     this.eventHistory = []
     this.eventReactions = new WeakMap()
+    this.preventDefault = preventDefault;
 
     this.addKeyCodes = this.addKeyCodes.bind(this)
     this.addInteractions = this.addInteractions.bind(this)
@@ -236,6 +238,7 @@ export default class HyperInteractive {
 
   //on up and down
   onKeydown(e) {
+    this.preventDefault && e.preventDefault()
     const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
     if (!e.repeat || !this.downKeys.has(eventCode)) {
       this.addToHistory(e)
@@ -244,6 +247,7 @@ export default class HyperInteractive {
     }
   }
   onKeyup(e) {
+    this.preventDefault && e.preventDefault()
     const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
     this.downKeys.delete(eventCode)
     this.addToHistory(e)
