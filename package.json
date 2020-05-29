@@ -1,6 +1,6 @@
 {
   "name": "hyper-interactive",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Events triggered on complex mouse and keyboard interactions.",
   "main": "src/index.js",
   "scripts": {
