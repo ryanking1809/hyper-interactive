@@ -21,6 +21,8 @@ export default class HyperInteractive {
     this.eventHistory = []
     this.eventReactions = new WeakMap()
 
+    this.artificialKeyUpTimes = {}
+
     this.addKeyCodes = this.addKeyCodes.bind(this)
     this.addInteractions = this.addInteractions.bind(this)
 
@@ -251,8 +253,23 @@ export default class HyperInteractive {
       this.addToHistory(e)
       this.downKeys.add(eventCode)
       this.fireEventReactions(e)
+    } else if (
+      this.downKeys.has(eventCode) &&
+      ['metaleft', 'metaright', '91', '93'].some((k) => this.downKeys.has(k))
+    ) {
+      const checkForKeyUp = () => {
+        if (Date.now() - this.artificialKeyUpTimes[eventCode] > 100) {
+          delete this.artificialKeyUpTimes[eventCode]
+          this.target.dispatchEvent(new KeyboardEvent('keyup', e))
+        } else {
+          setTimeout(checkForKeyUp, 100)
+        }
+      }
+      if (!this.artificialKeyUpTimes[eventCode]) setTimeout(checkForKeyUp, 100)
+      this.artificialKeyUpTimes[eventCode] = Date.now()
     }
   }
+
   onKeyup(e) {
     const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
     this.downKeys.delete(eventCode)
