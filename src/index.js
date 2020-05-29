@@ -81,7 +81,7 @@ export default class HyperInteractive {
   }
 
   // processing event formulas
-  addInteraction({ formula = '', reaction = (e) => e, eventType = 'keyup', target = anyTarget }) {
+  addInteraction({ formula = '', reaction = (e) => e, eventType = 'keyup', target = anyTarget, repeat = false }) {
     const node = parseFormula(formula)
     const eventChecker = this.getEventChecker(node, eventType)
     this.getNodeKeys(node).forEach((k) => {
@@ -93,6 +93,7 @@ export default class HyperInteractive {
         },
         formula: formula,
         target,
+        repeat,
       })
     })
   }
@@ -252,21 +253,22 @@ export default class HyperInteractive {
     if (!e.repeat || !this.downKeys.has(eventCode)) {
       this.addToHistory(e)
       this.downKeys.add(eventCode)
-      this.fireEventReactions(e)
-    } else if (
-      this.downKeys.has(eventCode) &&
-      ['metaleft', 'metaright', '91', '93'].some((k) => this.downKeys.has(k))
-    ) {
-      const checkForKeyUp = () => {
-        if (Date.now() - this.artificialKeyUpTimes[eventCode] > 100) {
-          delete this.artificialKeyUpTimes[eventCode]
-          this.target.dispatchEvent(new KeyboardEvent('keyup', e))
-        } else {
-          setTimeout(checkForKeyUp, 100)
+      this.fireEventReactions(e, false)
+      this.fireEventReactions(e, true)
+    } else {
+      this.fireEventReactions(e, true)
+      if (['metaleft', 'metaright', '91', '93'].some((k) => this.downKeys.has(k))) {
+        const checkForKeyUp = () => {
+          if (Date.now() - this.artificialKeyUpTimes[eventCode] > 100) {
+            delete this.artificialKeyUpTimes[eventCode]
+            this.target.dispatchEvent(new KeyboardEvent('keyup', e))
+          } else {
+            setTimeout(checkForKeyUp, 100)
+          }
         }
+        if (!this.artificialKeyUpTimes[eventCode]) setTimeout(checkForKeyUp, 100)
+        this.artificialKeyUpTimes[eventCode] = Date.now()
       }
-      if (!this.artificialKeyUpTimes[eventCode]) setTimeout(checkForKeyUp, 100)
-      this.artificialKeyUpTimes[eventCode] = Date.now()
     }
   }
 
@@ -296,32 +298,32 @@ export default class HyperInteractive {
       this.eventHistory.pop()
     }
   }
-  addEventReaction({ key = 'any', type = 'any', reaction, formula, target = anyTarget }) {
-    const t = tuple(key, type, target)
+  addEventReaction({ key = 'any', type = 'any', reaction, formula, target = anyTarget, repeat = false }) {
+    const t = tuple(key, type, target, repeat)
     if (this.eventReactions.get(t) === undefined) this.eventReactions.set(t, {})
     this.eventReactions.get(t)[formula] = reaction
   }
-  removeEventReaction({ key = 'any', type = 'any', formula, target = anyTarget }) {
-    const t = tuple(key, type, target)
+  removeEventReaction({ key = 'any', type = 'any', formula, target = anyTarget, repeat = false }) {
+    const t = tuple(key, type, target, repeat)
     if (this.eventReactions.get(t) === undefined) delete this.eventReactions.get(t)[formula]
   }
-  fireReactions({ key = 'any', type = 'any', target = anyTarget }, event) {
-    const t = tuple(key, type, target)
+  fireReactions({ key = 'any', type = 'any', target = anyTarget, repeat = false }, event) {
+    const t = tuple(key, type, target, repeat)
     const reactions = this.eventReactions.get(t)
     reactions &&
       Object.values(reactions).forEach((reaction) => {
         reaction(event)
       })
   }
-  fireEventReactions(e) {
+  fireEventReactions(e, repeat = false) {
     const eventCode = (e.code && e.code.toLowerCase()) || String(e.keyCode)
-    this.fireReactions({ key: eventCode, type: e.type, target: this.getTarget(e) }, e)
-    this.fireReactions({ key: eventCode, type: e.type }, e)
-    this.fireReactions({ type: e.type, target: this.getTarget(e) }, e)
-    this.fireReactions({ key: eventCode, target: this.getTarget(e) }, e)
-    this.fireReactions({ key: eventCode }, e)
-    this.fireReactions({ type: e.type }, e)
-    this.fireReactions({ target: this.getTarget(e) }, e)
+    this.fireReactions({ key: eventCode, type: e.type, target: this.getTarget(e), repeat }, e)
+    this.fireReactions({ key: eventCode, type: e.type, repeat }, e)
+    this.fireReactions({ type: e.type, target: this.getTarget(e), repeat }, e)
+    this.fireReactions({ key: eventCode, target: this.getTarget(e), repeat }, e)
+    this.fireReactions({ key: eventCode, repeat }, e)
+    this.fireReactions({ type: e.type, repeat }, e)
+    this.fireReactions({ target: this.getTarget(e), repeat }, e)
   }
 
   // dispose
