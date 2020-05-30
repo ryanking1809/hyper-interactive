@@ -2,13 +2,19 @@
   "name": "hyper-interactive",
   "version": "1.2.6",
   "description": "Events triggered on complex mouse and keyboard interactions.",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
   "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -cw",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "immutable-tuple": "^0.4.10",
     "nearley": "^2.19.1"
+  },
+  "devDependencies": {
+    "rollup": "^2.11.2"
   },
   "repository": {
     "type": "git",
