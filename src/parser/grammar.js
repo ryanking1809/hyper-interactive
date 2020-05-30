@@ -145,3 +145,5 @@
     window.grammar = grammar;
   }
 })();
+
+export default module.exports;
