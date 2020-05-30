@@ -259,26 +259,29 @@ export default class HyperInteractive {
       this.fireEventReactions(e, true)
     }
     if (metaKeyCodes.some((k) => this.downKeys.has(k))) {
-      const checkForKeyUp = (code) => {
-        if (Date.now() - this.artificialKeyUpTimes[code] > 100) {
-          delete this.artificialKeyUpTimes[code]
-          if (this.downKeys.has(code)) {
-            const eCode = isNaN(code) ? { code: code } : { keyCode: code }
-            this.target.dispatchEvent(new KeyboardEvent('keyup', { ...e, ...eCode }))
-          }
-        } else {
-          setTimeout(() => checkForKeyUp(), 100)
-        }
-      }
       this.downKeys.forEach((dk) => {
         if (!modifierKeyCodes.includes(dk)) {
-          // this is quite a large delay but prevents
-          // incorrect keyup event at the start repeated down events
-          // may also create issues with each persons key repeat settings
-          setTimeout(() => checkForKeyUp(dk), 500)
+          if (!this.artificialKeyUpTimes[dk])
+            setTimeout(
+              window.requestIdleCallback(() => this.fireArtificialKeyUp(dk, e)),
+              500
+            )
           this.artificialKeyUpTimes[dk] = Date.now()
         }
       })
+    }
+  }
+
+  fireArtificialKeyUp(code, e) {
+    if (Date.now() - this.artificialKeyUpTimes[code] > 100) {
+      this.artificialKeyUpTimes[code] = null
+      delete this.artificialKeyUpTimes[code]
+      if (this.downKeys.has(code)) {
+        const eCode = isNaN(code) ? { code: code } : { keyCode: code }
+        this.target.dispatchEvent(new KeyboardEvent('keyup', { ...e, ...eCode }))
+      }
+    } else {
+      setTimeout(() => this.fireArtificialKeyUp(code, e), 100)
     }
   }
 
