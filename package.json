@@ -1,6 +1,6 @@
 {
   "name": "hyper-interactive",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Events triggered on complex mouse and keyboard interactions.",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
