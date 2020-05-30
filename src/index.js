@@ -258,20 +258,27 @@ export default class HyperInteractive {
     } else {
       this.fireEventReactions(e, true)
     }
-    if (
-      !['metaleft', 'metaright', '91', '93'].includes(eventCode) &&
-      ['metaleft', 'metaright', '91', '93'].some((k) => this.downKeys.has(k))
-    ) {
-      const checkForKeyUp = () => {
-        if (Date.now() - this.artificialKeyUpTimes[eventCode] > 100) {
-          delete this.artificialKeyUpTimes[eventCode]
-          if (this.downKeys.has(eventCode)) this.target.dispatchEvent(new KeyboardEvent('keyup', e))
+    if (metaKeyCodes.some((k) => this.downKeys.has(k))) {
+      const checkForKeyUp = (code) => {
+        if (Date.now() - this.artificialKeyUpTimes[code] > 100) {
+          delete this.artificialKeyUpTimes[code]
+          if (this.downKeys.has(code)) {
+            const eCode = isNaN(code) ? { code: code } : { keyCode: code }
+            this.target.dispatchEvent(new KeyboardEvent('keyup', { ...e, ...eCode }))
+          }
         } else {
-          setTimeout(checkForKeyUp, 100)
+          setTimeout(() => checkForKeyUp(), 100)
         }
       }
-      if (!this.artificialKeyUpTimes[eventCode]) setTimeout(checkForKeyUp, 100)
-      this.artificialKeyUpTimes[eventCode] = Date.now()
+      this.downKeys.forEach((dk) => {
+        if (!modifierKeyCodes.includes(dk)) {
+          // this is quite a large delay but prevents
+          // incorrect keyup event at the start repeated down events
+          // may also create issues with each persons key repeat settings
+          setTimeout(() => checkForKeyUp(dk), 500)
+          this.artificialKeyUpTimes[dk] = Date.now()
+        }
+      })
     }
   }
 
@@ -335,3 +342,9 @@ export default class HyperInteractive {
     this.target.removeEventListener('keyup', this.onKeyup)
   }
 }
+
+const metaKeyCodes = ['metaleft', 'metaright', '91', '93']
+const shiftKeyCodes = ['shiftleft', 'shiftright', '16']
+const ctrlKeyCodes = ['controlleft', 'controlright', '17']
+const altKeyCodes = ['altleft', 'altright', '18']
+const modifierKeyCodes = [...metaKeyCodes, ...shiftKeyCodes, ...ctrlKeyCodes, ...altKeyCodes]
