@@ -257,18 +257,21 @@ export default class HyperInteractive {
       this.fireEventReactions(e, true)
     } else {
       this.fireEventReactions(e, true)
-      if (['metaleft', 'metaright', '91', '93'].some((k) => this.downKeys.has(k))) {
-        const checkForKeyUp = () => {
-          if (Date.now() - this.artificialKeyUpTimes[eventCode] > 100) {
-            delete this.artificialKeyUpTimes[eventCode]
-            this.target.dispatchEvent(new KeyboardEvent('keyup', e))
-          } else {
-            setTimeout(checkForKeyUp, 100)
-          }
+    }
+    if (
+      !['metaleft', 'metaright', '91', '93'].includes(eventCode) &&
+      ['metaleft', 'metaright', '91', '93'].some((k) => this.downKeys.has(k))
+    ) {
+      const checkForKeyUp = () => {
+        if (Date.now() - this.artificialKeyUpTimes[eventCode] > 100) {
+          delete this.artificialKeyUpTimes[eventCode]
+          if (this.downKeys.has(eventCode)) this.target.dispatchEvent(new KeyboardEvent('keyup', e))
+        } else {
+          setTimeout(checkForKeyUp, 100)
         }
-        if (!this.artificialKeyUpTimes[eventCode]) setTimeout(checkForKeyUp, 100)
-        this.artificialKeyUpTimes[eventCode] = Date.now()
       }
+      if (!this.artificialKeyUpTimes[eventCode]) setTimeout(checkForKeyUp, 100)
+      this.artificialKeyUpTimes[eventCode] = Date.now()
     }
   }
 
