@@ -7,7 +7,7 @@ Inspired by `mousetrap`, `hyper-interactive` is more flexible - It allows any ke
 
 ## How to use
 
-#### Import Spring
+#### Import HyperInteractive
 
 ```js
 import HyperInteractive from "hyper-interactive";
