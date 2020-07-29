@@ -81,7 +81,7 @@ export default class HyperInteractive {
   }
 
   // processing event formulas
-  addInteraction({ formula = '', reaction = (e) => e, eventType = 'keyup', target = anyTarget, repeat = false }) {
+  addInteraction({ formula = '', reaction = (e) => e, eventType = 'keydown', target = anyTarget, repeat = true }) {
     const node = parseFormula(formula)
     const eventChecker = this.getEventChecker(node, eventType)
     this.getNodeKeys(node).forEach((k) => {
@@ -97,7 +97,7 @@ export default class HyperInteractive {
       })
     })
   }
-  removeInteraction({ formula = '', eventType = 'keyup', target = anyTarget }) {
+  removeInteraction({ formula = '', eventType = 'keydown', target = anyTarget, repeat = true }) {
     const node = parseFormula(formula)
     this.getNodeKeys(node).forEach((k) => {
       this.removeEventReaction({
@@ -105,6 +105,7 @@ export default class HyperInteractive {
         type: eventType,
         formula: formula,
         target,
+        repeat,
       })
     })
   }
@@ -155,7 +156,7 @@ export default class HyperInteractive {
       (target ? target === this.getTarget(e) : true)
     )
   }
-  getEventChecker(node, eventType = 'keyup', length = 1, baseChecker = this.checkEvent) {
+  getEventChecker(node, eventType = 'keydown', length = 1, baseChecker = this.checkEvent) {
     if (node.konami) {
       return this.checkKonamiEvent(node, eventType, length, baseChecker)
     } else if (node.combo) {
@@ -208,7 +209,7 @@ export default class HyperInteractive {
     }
     return index
   }
-  checkComboEvent(node, eventType = 'keyup', length = 1, baseChecker) {
+  checkComboEvent(node, eventType = 'keydown', length = 1, baseChecker) {
     let kn = node.combo.find((n) => n.konami)
     if (kn) {
       let comboNodes = node.combo.filter((n) => n !== kn)
@@ -221,15 +222,15 @@ export default class HyperInteractive {
     return (e = this.eventHistory[0]) =>
       node.combo.every((n) => this.getEventChecker(n, eventType, node.combo.length, baseChecker)(e))
   }
-  checkOrEvent(node, eventType = 'keyup', length = 1, baseChecker) {
+  checkOrEvent(node, eventType = 'keydown', length = 1, baseChecker) {
     return (e = this.eventHistory[0]) => node.or.some((n) => this.getEventChecker(n, eventType, length, baseChecker)(e))
   }
-  checkNotEvent(node, eventType = 'keyup', length = 1, baseChecker) {
+  checkNotEvent(node, eventType = 'keydown', length = 1, baseChecker) {
     return (e = this.eventHistory[0]) => {
       return !this.getEventChecker(node.not, eventType, length, baseChecker)(e)
     }
   }
-  checkKeyEvent(node, eventType = 'keyup', length = 1, baseChecker) {
+  checkKeyEvent(node, eventType = 'keydown', length = 1, baseChecker) {
     const mappedKeys = this.keyboardMap[node.key.toLowerCase()]
     if (mappedKeys) return this.getEventChecker(parseFormula(mappedKeys), eventType, length, baseChecker)
     return (e = this.eventHistory[0]) => {
