@@ -1,9 +1,9 @@
 {
   "name": "hyper-interactive",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "description": "Events triggered on complex mouse and keyboard interactions.",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "module": "dist/index.es.js",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -cw",
