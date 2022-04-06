@@ -8,8 +8,8 @@ export default {
     },
     {
       file: pkg.module,
-      format: 'es', // the preferred format
-    }
+      format: 'esm', // the preferred format
+    },
   ],
   external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
 }
